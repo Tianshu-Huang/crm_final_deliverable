@@ -61,7 +61,6 @@ Example ROI interpretation:
   venv\Scripts\activate
 
 ### 📦 Install required Python packages
-  ```bash
   pip install -r requirements.txt
 
 ### ▶️ Run the Streamlit dashboard
