@@ -49,7 +49,7 @@ Example ROI interpretation:
 
 ### 🧱 Prerequisites
 - **Python 3.9+**  
-- (Optional) Create and activate a virtual environment:
+- Activate virtual environment:
   ```bash
   # 🧱 Create and activate virtual environment
   python -m venv venv
@@ -60,11 +60,14 @@ Example ROI interpretation:
   # Windows
   venv\Scripts\activate
 
-  # 📦 Install required Python packages
+### 📦 Install required Python packages
+  ```bash
   pip install -r requirements.txt
 
-  # ▶️ Run the Streamlit dashboard
+### ▶️ Run the Streamlit dashboard
+  ```bash
   streamlit run app.py
 
-  # 🌐 Open your browser and navigate to:
+### 🌐 Open your browser and navigate to:
+  ```bash
   http://localhost:8501
