@@ -47,9 +47,16 @@ Example ROI interpretation:
 
 ## 🚀 Running the Dashboard
 
+## 🚀 Running the Dashboard
+
 ### 🧱 Prerequisites
 - Python 3.9 or later  
-- Recommended virtual environment (`venv` or `conda`)
+- (Optional) Create a virtual environment to keep dependencies clean:
+  ```bash
+  python -m venv crm_env
+  source crm_env/bin/activate       # on macOS/Linux
+crm_env\Scripts\activate          # on Windows
+
 
 ### 📦 Install Dependencies
 ```bash
