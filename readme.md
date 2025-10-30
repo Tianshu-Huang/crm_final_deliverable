@@ -47,17 +47,24 @@ Example ROI interpretation:
 
 ## 🚀 Running the Dashboard
 
-## 🚀 Running the Dashboard
-
 ### 🧱 Prerequisites
-- Python 3.9 or later  
-- (Optional) Create a virtual environment to keep dependencies clean:
+- **Python 3.9+**  
+- (Optional) Create and activate a virtual environment:
   ```bash
-  python -m venv crm_env
-  source crm_env/bin/activate       # on macOS/Linux
-crm_env\Scripts\activate          # on Windows
+  # 🧱 Create and activate virtual environment
+  python -m venv venv
 
+  # macOS / Linux
+  source venv/bin/activate
 
-### 📦 Install Dependencies
-```bash
-pip install -r requirements.txt
+  # Windows
+  venv\Scripts\activate
+
+  # 📦 Install required Python packages
+  pip install -r requirements.txt
+
+  # ▶️ Run the Streamlit dashboard
+  streamlit run app.py
+
+  # 🌐 Open your browser and navigate to:
+  http://localhost:8501
