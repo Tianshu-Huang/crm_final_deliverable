@@ -1,0 +1,5 @@
+Control,Effect_on_Frequency,Effect_on_Loss,Cost_Million,MTTD_hours,MTTR_hours,downtime_cost_per_hour
+MFA,0.5,0.0,0.8,6,18,75000
+EDR,0.1,0.4,1.0,6,18,75000
+Backup,0.0,0.3,0.7,6,18,75000
+SOC,0.2,0.2,0.5,6,18,75000
