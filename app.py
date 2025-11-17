@@ -1,6 +1,8 @@
 import streamlit as st
 from main_dashboard import render_main_dashboard
 from ransom_model import render_decision_model_tab  # import the new tab renderer
+from scenario_phishing import render_phishing_scenario_tab
+
 
 
 def main():
@@ -8,10 +10,15 @@ def main():
 
     # Top-level tab switcher
     tab = st.radio(
-        "Select Dashboard:",
-        ["Risk Simulator", "Ransom vs. Recovery"],
-        horizontal=True,
-    )
+    "Select Dashboard:",
+    [
+        "📊 Risk Simulator",
+        "💸 Ransom vs. Recovery",
+        "🎣 Phishing Attack Scenario"
+    ],
+    horizontal=True,
+)
+
     st.divider()
 
     # Reset sidebar when switching tabs
@@ -23,8 +30,10 @@ def main():
         st.session_state.last_tab = tab
 
     # Render active tab
-    if tab == "Risk Simulator":
+    if tab == "📊 Risk Simulator":
         render_main_dashboard()
+    elif tab == "🎣 Phishing Attack Scenario":
+        render_phishing_scenario_tab()
     else:
         render_decision_model_tab()
 

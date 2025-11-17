@@ -76,37 +76,54 @@ def render_decision_model_tab():
         ["Baseline", "Optimistic", "Pessimistic"],
         key="sidebar_scenario"
     )
-    mttd = st.sidebar.number_input(
-        "MTTD — Mean Time to Detect (hours)", 0.0, 168.0, default_mttd, step=1.0, key="sidebar_mttd"
-    )
-    mttr = st.sidebar.number_input(
-        "MTTR — Mean Time to Recover (hours)", 0.0, 336.0, default_mttr, step=1.0, key="sidebar_mttr"
+    mttd = st.number_input(
+    "MTTD — Mean Time to Detect (hours)",
+    min_value=0.0, max_value=1000.0,
+    value=float(default_mttd), 
+    step=1.0, 
+    key="sidebar_mttd"
     )
 
-    ransom_amount = st.sidebar.number_input(
-        "Ransom Amount (USD)", 0.0, 100_000_000.0, 1_500_000.0, step=50_000.0, key="sidebar_ransom"
+    mttr = st.number_input(
+        "MTTR — Mean Time to Recover (hours)",
+        min_value=0.0, max_value=1000.0,
+        value=float(default_mttr),
+        step=1.0, 
+        key="sidebar_mttr"
     )
+
+
+    ransom_amount = st.sidebar.number_input(
+    "💰 Ransom Amount (USD)", 0.0, 100_000_000.0, 1_200_000.0, step=50_000.0, key="sidebar_ransom"
+    )
+
     success_prob = st.sidebar.slider(
-        "Decryption Success Probability", 0.0, 1.0, 0.8, 0.01,
+        "🔐 Decryption Success Probability", 0.0, 1.0, 0.72, 0.01,
         key="sidebar_success_prob",
         help="Likelihood ransom payment successfully decrypts systems"
     )
+
     negotiation_hours = st.sidebar.number_input(
-        "Negotiation Delay (hours)", 0.0, 168.0, 12.0, step=1.0, key="sidebar_negotiation"
+        "🤝 Negotiation Delay (hours)", 0.0, 168.0, 24.0, step=1.0, key="sidebar_negotiation"
     )
+
     decrypt_hours = st.sidebar.number_input(
-        "Decryption Time (hours)", 0.0, 168.0, 6.0, step=1.0, key="sidebar_decrypt"
+        "🔓 Decryption Time (hours)", 0.0, 168.0, 12.0, step=1.0, key="sidebar_decrypt"
     )
 
     downtime_cost_per_hour = st.sidebar.number_input(
-        "Downtime Cost per Hour (USD)", 0.0, 5_000_000.0, default_downtime_cost, step=5_000.0, key="sidebar_downtime"
+        "⏱️ Downtime Cost per Hour (USD)", 0.0, 5_000_000.0, default_downtime_cost, step=5_000.0, key="sidebar_downtime"
     )
+
     recovery_fixed_cost = st.sidebar.number_input(
-        "Fixed Recovery Cost (USD)", 0.0, 50_000_000.0, 500_000.0, step=25_000.0, key="sidebar_fixed"
+        "🧰 Fixed Recovery Cost (USD)", 0.0, 50_000_000.0, 1_000_000.0, step=25_000.0, key="sidebar_fixed"
     )
+
     data_loss_cost = st.sidebar.number_input(
-        "Data Loss / Re-entry Cost (USD)", 0.0, 50_000_000.0, 0.0, step=25_000.0, key="sidebar_data_loss"
+        "🗃️ Data Loss / Re-entry Cost (USD)", 0.0, 50_000_000.0, 5_000_000.0, step=25_000.0, key="sidebar_data_loss"
     )
+
+
 
     # Apply scenario presets
     if scenario == "Optimistic":
@@ -142,11 +159,11 @@ def render_decision_model_tab():
         st.info(f"🛠️ Recovering via backups is cheaper by **${cost_pay - cost_recover:,.0f}**.")
 
     # ---------- Tabs: Sensitivity, Heatmap, Export ----------
-    tab1, tab2, tab3 = st.tabs(["📈 Sensitivity Curves", "🌡️ 2D Heatmap", "💾 Save / Export"])
+    tab1, tab2 = st.tabs(["📈 Sensitivity Curves", "🌡️ 2D Heatmap"]) #, "💾 Save / Export"])
 
     # --- Sensitivity: Cost vs Downtime/Hour ---
     with tab1:
-        st.markdown("### 📈 Sensitivity: Cost vs. Downtime Cost per Hour")
+        st.markdown("### Sensitivity: Cost vs. Downtime Cost per Hour")
         dc_grid = np.linspace(max(1_000.0, downtime_cost_per_hour * 0.25), downtime_cost_per_hour * 2.0, 50)
         pay_curve = [
             expected_cost_pay_ransom(ransom_amount, negotiation_hours, decrypt_hours, success_prob, dc, recovery_fixed_cost, mttd, mttr)
@@ -175,7 +192,7 @@ def render_decision_model_tab():
 
     # --- 2D Sensitivity Heatmap ---
     with tab2:
-        st.markdown("### 🌡️ Sensitivity Heatmap: MTTR vs. Success Probability")
+        st.markdown("### Sensitivity Heatmap: MTTR vs. Success Probability")
         mttr_vals = np.arange(4, 36, 4)
         success_vals = np.arange(0.5, 1.0, 0.05)
         Z = np.zeros((len(mttr_vals), len(success_vals)))
@@ -193,38 +210,5 @@ def render_decision_model_tab():
             yaxis_title="MTTR (hours)"
         )
         st.plotly_chart(fig, use_container_width=True)
-
-    # --- Export Tab ---
-    with tab3:
-        st.markdown("### 💾 Save or Export Results")
-        scenario_data = {
-            "mttd": mttd,
-            "mttr": mttr,
-            "ransom_amount": ransom_amount,
-            "success_prob": success_prob,
-            "negotiation_hours": negotiation_hours,
-            "decrypt_hours": decrypt_hours,
-            "downtime_cost_per_hour": downtime_cost_per_hour,
-            "recovery_fixed_cost": recovery_fixed_cost,
-            "data_loss_cost": data_loss_cost,
-            "cost_pay": cost_pay,
-            "cost_recover": cost_recover,
-            "recommendation": strategy,
-        }
-
-        st.json(scenario_data)
-
-        if st.button("💾 Save Scenario", key="sidebar_save"):
-            Path("data").mkdir(exist_ok=True)
-            with open("data/scenario.json", "w") as f:
-                json.dump(scenario_data, f, indent=2)
-            st.success("Scenario saved to data/scenario.json")
-
-        st.download_button(
-            "⬇️ Download Results CSV",
-            data=pd.DataFrame([scenario_data]).to_csv(index=False),
-            file_name="ransom_vs_recovery_results.csv",
-            mime="text/csv",
-        )
-
+    
     st.caption("All values are simulated for academic analysis and do not represent real AHN data.")

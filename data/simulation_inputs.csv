@@ -1,0 +1,10 @@
+Parameter,Value
+Base_Frequency,4.0
+Base_Loss_Mu,15.8
+Base_Loss_Sigma,0.9
+Baseline_Cost,20000000
+Default_MFA,70
+Default_EDR,60
+Default_SOC,16
+Default_Backup,12
+Default_Budget,5.0
