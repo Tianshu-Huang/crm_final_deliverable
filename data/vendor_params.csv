@@ -1,0 +1,2 @@
+BaseVendorFrequency,MTTD_hours,MTTR_hours,DowntimeCostPerHour,RecoveryFixedCost,PHI_Records,CostPerRecord,DefaultVendorHardening,DefaultIAMStrength,DefaultAPILogging,DefaultDLPCoverage
+0.6,480,48,75000,600000,71276,398,0.25,0.20,0.35,0.30
