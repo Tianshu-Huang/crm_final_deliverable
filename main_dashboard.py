@@ -82,15 +82,20 @@ def render_main_dashboard():
     freq_modifier = max(0.05, freq_modifier)
     adjusted_freq = base_freq * freq_modifier
 
-    # ---------- ⭐ FIXED: Severity modifiers (Option B) ----------
-    # EDR reduces severity
+    # ---------- Severity modifiers ----------
+    # EDR always reduces severity (prevents lateral movement / execution)
     sev_edr = 1 - (edr / 100) * 0.35
 
-    # Backups strongly reduce severity (RTO)
-    sev_backup = 1 - (backup / 48) * 0.50
+    # RTO = Recovery Time (hours).
+    # Higher RTO → WORSE recovery → HIGHER severity.
+    # Correct severity impact (Option A fix):
+    sev_backup = 1 + (backup / 48) * 0.50
+    #   backup = 1  → sev_backup ≈ 1.01 (fast restore, low severity)
+    #   backup = 48 → sev_backup ≈ 1.50 (very slow restore, high severity)
 
-    # SOC should NOT reduce severity; it's frequency-only
+    # Final severity multiplier
     severity_multiplier = max(0.05, sev_edr * sev_backup)
+
 
     # ---------- Monte Carlo severity ----------
     raw_losses = np.random.lognormal(base_loss_mu, base_loss_sigma, N)
