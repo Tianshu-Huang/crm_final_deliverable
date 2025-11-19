@@ -38,9 +38,9 @@ def expected_vendor_attack_cost(
     phi_cost_per_record: float,
 ):
     """
-    Supply-chain / vendor compromise → Cloud credential abuse → PHI exfiltration → Encryption
+    Supply-chain / vendor compromise -> Cloud credential abuse -> PHI exfiltration  -> Encryption
 
-    Total Cost = (Adjusted Frequency) × (Severity)
+    Total Cost = (Adjusted Frequency) * (Severity)
     Severity = PHI Exfiltration Cost + Downtime Cost + Recovery Fixed Cost
     """
 
@@ -71,7 +71,7 @@ def expected_vendor_attack_cost(
 # ------------------ Main Vendor Compromise Tab ---------------------
 def render_vendor_compromise_tab():
 
-    st.header("🔗 Vendor Compromise → Cloud Abuse → PHI Exfiltration Scenario")
+    st.header("🔗 Vendor Compromise -> Cloud Abuse -> PHI Exfiltration Scenario")
 
     st.write(
         """
@@ -79,7 +79,7 @@ def render_vendor_compromise_tab():
         granting attackers access to **AHN cloud APIs**, followed by **PHI exfiltration** and finally encryption
         for monetary extortion ("double extortion" ransomware).
         
-        This aligns with AHN’s real breach history:
+        This aligns with AHN's real breach history:
         **3 out of 4 breaches in the past five years** originated from vendor compromise.
         """
     )
