@@ -158,8 +158,8 @@ def render_decision_model_tab():
     else:
         st.info(f"🛠️ Recovering via backups is cheaper by **${cost_pay - cost_recover:,.0f}**.")
 
-    # ---------- Tabs: Sensitivity, Heatmap, Export ----------
-    tab1, tab2 = st.tabs(["📈 Sensitivity Curves", "🌡️ 2D Heatmap"]) #, "💾 Save / Export"])
+    # ---------- Tabs: Sensitivity and Heatmap----------
+    tab1, tab2 = st.tabs(["📈 Sensitivity Curves", "🌡️ 2D Heatmap"])
 
     # --- Sensitivity: Cost vs Downtime/Hour ---
     with tab1:

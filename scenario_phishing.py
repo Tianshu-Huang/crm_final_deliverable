@@ -5,9 +5,7 @@ import plotly.express as px
 from pathlib import Path
 
 
-# -----------------------------
-# Load Phishing Parameters from CSV
-# -----------------------------
+# ------------------ Load Phishing Parameters from CSV -----------------------------
 def load_phishing_inputs(path="data/phishing_scenario_inputs.csv"):
     p = Path(path)
     if not p.exists():
@@ -27,9 +25,7 @@ def load_phishing_inputs(path="data/phishing_scenario_inputs.csv"):
     return {row["Parameter"]: row["Value"] for _, row in df.iterrows()}
 
 
-# -----------------------------
-# Scenario Calculation
-# -----------------------------
+# ----------------------------- Scenario Calculation ----------------------------
 def compute_phishing_scenario(
     phishing_rate,
     training_effectiveness,
@@ -59,16 +55,14 @@ def compute_phishing_scenario(
     }
 
 
-# -----------------------------
-# MAIN DASHBOARD TAB
-# -----------------------------
+# ----------------------------- MAIN DASHBOARD TAB -----------------------------
 def render_phishing_scenario_tab():
-    st.title("🎣 Phishing → Credential Compromise → EHR Encryption Scenario")
+    st.title("🎣 Phishing -> Credential Compromise -> EHR Encryption Scenario")
 
     st.write("""
     This dashboard models a realistic MITRE ATT&CK ransomware chain common in healthcare:
 
-    **Phishing → Credential Harvesting → Lateral Movement → EHR Encryption**
+    **Phishing -> Credential Harvesting -> Lateral Movement -> EHR Encryption**
     
     Based on ATT&CK Techniques:
     - T1566 Phishing  
@@ -78,14 +72,10 @@ def render_phishing_scenario_tab():
     - T1486 Data Encrypted for Impact  
     """)
 
-    # -------------------
-    # Load Default Inputs from CSV
-    # -------------------
+    # ------------------- Load Default Inputs from CSV -------------------
     inputs = load_phishing_inputs()
 
-    # -------------------
-    # Sidebar Inputs (CSV-driven)
-    # -------------------
+    # ------------------- Sidebar Inputs (CSV-driven) -------------------
     st.sidebar.header("⚙️ Scenario Inputs (CSV-Driven Defaults)")
 
     phishing_rate = st.sidebar.slider(
@@ -152,9 +142,7 @@ def render_phishing_scenario_tab():
         key="phish_downtime"
     )
 
-    # -------------------
-    # Run Scenario Model
-    # -------------------
+    # ------------------- Run Scenario Model -------------------
     results = compute_phishing_scenario(
         phishing_rate,
         training_effectiveness,
@@ -166,9 +154,7 @@ def render_phishing_scenario_tab():
         downtime_hours,
     )
 
-    # -------------------
-    # Display Results
-    # -------------------
+    # ------------------- Display Results -------------------
     st.subheader("📊 Scenario Risk Metrics")
 
     c1, c2, c3 = st.columns(3)
@@ -178,9 +164,7 @@ def render_phishing_scenario_tab():
 
     st.metric("Expected Financial Loss", f"${results['Expected Loss (USD)']:,.0f}")
 
-    # -------------------
-    # Table Output
-    # -------------------
+    # ------------------- Table Output -------------------
     st.markdown("### 📋 Detailed Scenario Table")
     df = pd.DataFrame({
         "Metric": list(results.keys()),
@@ -188,9 +172,7 @@ def render_phishing_scenario_tab():
     })
     st.dataframe(df, use_container_width=True)
 
-    # -------------------
-    # Visualization: Attack Funnel
-    # -------------------
+    # ------------------- Visualization: Attack Funnel -------------------
     st.markdown("### 📈 Attack Chain Probability Funnel")
 
     funnel_df = pd.DataFrame({

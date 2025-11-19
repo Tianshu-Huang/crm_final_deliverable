@@ -1,6 +1,6 @@
 Parameter,Value
-Phishing_Rate,0.26
-Training_Effectiveness,0.60
+Phishing_Rate,0.40
+Training_Effectiveness,0.30
 MFA_Strength,0.65
 Credential_Dumping_Prob,0.35
 Lateral_Movement_Prob,0.40
