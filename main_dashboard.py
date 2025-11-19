@@ -4,6 +4,49 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
+"""
+General Ransomware Risk Simulator Notes & Data Sources
+------------------------------------------------------
+
+This is the overall ransomware model tab. It's meant to be a generic,
+high-level risk simulator rather than tied to a specific attack chain.
+The idea is that this tab gives leadership a high-level EAL estimate, while the
+other tabs go into detailed scenarios.
+
+Here's where the data comes from:
+
+Base_Frequency:
+    This is roughly derived from AHN's historical breach rate combined with
+    general US healthcare ransomware frequency, but we let the CSV override.
+
+Base_Loss_Mu / Base_Loss_Sigma:
+    Also from the CSV. These are the lognormal parameters before controls.
+    We tuned them so that the raw (uncontrolled) distribution roughly matches
+    healthcare ransomware losses (multi-million-dollar typical events).
+
+Baseline_Cost:
+    Only used for ROI display. This is whatever the CSV contains. Not a real
+    cost, just a reference point.
+
+Controls:
+    MFA reduces frequency.
+    EDR reduces severity.
+    SOC coverage reduces dwell time (frequency only).
+    Backup RTO ncreases severity (longer restore = more damage).
+    Budget only relevant for ROI.
+    All starting values in controls are estimated.
+
+CSV:
+    data/simulation_inputs.csv
+
+Data sources behind the scenes:
+    - AHN ransomware stats sheet (for frequency)
+    - Healthcare downtime cost ($75k/hr) from Costs sheet
+    - Industry averages for MFA/EDR/SOC effectiveness
+    - Some assumptions where the data isn't availables
+
+"""
+
 
 # ---------- Load CSV-driven simulation parameters ----------
 def load_simulation_inputs(path="data/simulation_inputs.csv"):

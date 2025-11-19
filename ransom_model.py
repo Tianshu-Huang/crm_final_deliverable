@@ -4,7 +4,60 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
-import json
+
+"""
+Ransom Payment vs. System Recovery Model Notes & Data Sources
+---------------------------------------------------------------
+
+This file handles the "Should we pay ransom or restore systems?" decision model.
+It's not meant to predict exact numbers but to show leadership how the cost
+tradeoffs behave when you factor in downtime, ransom amount, and detection delays.
+
+Where the numbers come from:
+
+MTTD (Mean Time to Detect)
+    This is estimated form past AHN attacks.
+    It usually takes 30-60 days for AHN to detect a ransomware that's been sitting in its env.
+
+MTTR (Mean Time to Recover)
+    48 hours is pretty typical for ransomware restoration in hospitals.
+
+Ransom Amount (USD)
+    Typical ransom asks fall in the $1M to $5M range, so the defaults reflect that. 
+    Editable through sidebar.
+
+Decryption Success Probability
+    We estimated default to 0.8 but scenario presets can change it.
+
+Negotiation & Decryption Delays
+    We estimated:
+        - Negotiation roughly takes12 hours
+        - Decryption roughly take 6 hours
+
+Downtime Cost per Hour
+    Estimated to be $75k/hr, aligns with hospital OR/ICU downtime numbers.
+
+Fixed Recovery Cost
+    We used ~$500k as a middle-range cost for forensics, cleanup, cloud rebuilds, IR labor, etc.
+
+Data Loss / Re-entry Cost
+    Zero by default unless the team wants to model it. This varies heavily
+    by department and incident type.
+
+Controls:
+    - Scenario presets (baseline/optimistic/pessimistic)
+    - Everything else is either from assumptions.csv or user input.
+
+CSV Input:
+    data/assumptions.csv holds the default MTTD/MTTR/downtime cost values.
+    Users can override these to tune.
+
+The main point of this model is not to be precise, but to compare shapes
+of the cost curves and help AHN decide when ransom payment is actually the
+cheaper option vs when backups win outright.
+
+"""
+
 
 # ---------- Load Default Assumptions ----------
 def load_assumptions(path="data/assumptions.csv"):

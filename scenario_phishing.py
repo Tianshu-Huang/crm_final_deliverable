@@ -4,6 +4,58 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
+"""
+Phishing Scenario Model Notes & Data Sources
+----------------------------------------------
+
+This file models the phishing -> credential theft -> ransomware encryption path.
+Basically the "classic" healthcare ransomware entry point.
+
+'m putting all the key parameters here so it's clear where everything came from:
+
+Phishing attack volume:
+    Comes from the AHN stats sheet.
+    There were ~6428 attacks/month, and about 80% of them are phishing,
+    so roughly ~5000 phishing attempts per month.
+
+Email hit rate (what gets past filters):
+    This is not directly in the dataset, so we used 2%, which is pretty normal
+    for healthcare environments.
+
+Click rate:
+    Most studies say 2-8% for hospitals. We picked 5% as a middle ground assumption.
+
+Credential compromise probability:
+    Assumed 20% of malicious clicks lead to a compromised account.
+    This is from industry averages, not AHN specific.
+
+Detection time (MTTD):
+    This is estimated form past AHN attacks.
+    It usually takes 30-60 days for AHN to detect a ransomware that's been sitting in its env.
+
+Recovery time (MTTR):
+    48 hours is pretty typical for ransomware restoration in hospitals.
+
+Downtime cost per hour:
+    Estimated to be $75k/hr
+
+Controls:
+    MFA reduces frequency (prevents reuse of stolen credentials).
+    EDR reduces severity (stops malware execution/lateral movement).
+    SOC affects detection speed affects frequency.
+    Backup RTO affects severity directly (longer restore -> higher cost).
+    All starting values in controls are estimated.
+
+CSV:
+    data/phishing_params.csv
+
+Data sources behind the scenes:
+    - A bunch of numbers are directly from the AHN sheets,
+    - Some are industry-standard healthcare numbers,
+    - And some pieces (click rate, compromise probability) are assumptions.
+
+"""
+
 
 # ------------------ Load Phishing Parameters from CSV -----------------------------
 def load_phishing_inputs(path="data/phishing_scenario_inputs.csv"):

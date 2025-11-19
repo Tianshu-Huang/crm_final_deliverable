@@ -5,6 +5,61 @@ import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
 
+"""
+Vendor Compromise Scenario Notes & Data Sources
+--------------------------------------------------------
+
+This scenario is trying to capture the "vendor gets hacked -> attacker
+abuses vendor access -> exfiltrates PHI -> ransomware" situation. This is
+the same pattern that hit a lot of US hospitals recently, and AHN's own
+history shows that vendor-related breaches are the main problem (3 out of 5).
+
+Where we got all the numbers:
+
+Vendor breach frequency:
+    From the AHN ransomware stats sheet. 3 vendor-related breaches in 5 years,
+    so we just modeled that as ~0.6 events per year.
+
+PHI per breach:
+    Comes from the Costs sheet, ~71k records on average for healthcare.
+    We used that as the PHI exposure.
+
+Cost per PHI record:
+    $398/record (from the Costs sheet, which cites Veriti's healthcare report).
+
+Exfiltration probability:
+    This is an assumption. We model it as a factor affected by DLP. 
+
+MTTD:
+    We used ~20 days. Cloud/vendor breaches tend to get caught earlier than
+    phishing-based compromises.
+
+MTTR:
+    Estimated to be 48 hrs, same as phishing, cloud-based ransomware recoveries 
+    are typically around this range.
+
+Downtime cost/hr:
+    Estimated to be $75k/hr
+
+Recovery fixed cost:
+    ~$600k based on typical IR + forensic cost for medium-sized hospital breaches.
+
+Controls:
+    - Vendor Access Hardening lowers frequency (MFA, key rotation, reducing vendor blast-radius).
+    - Cloud IAM Restrictions lowers privilege escalation chance.
+    - API Logging Coverage affects detection and dwell time.
+    - DLP Coverage is the biggest severity reducer because it caps PHI exfil.
+    All starting values in controls are estimated.
+
+CSV:
+    data/vendor_params.csv
+
+Data sources behind the scenes:
+    Some things are definitely assumptions (e.g., how much DLP reduces exfil), but
+    we tried to make them realistic based on real cases and MITRE ENGAGE playbooks.
+
+"""
+
 
 # ------------------ Load Vendor Scenario Parameters ---------------------
 def load_vendor_params(path="data/vendor_params.csv"):
