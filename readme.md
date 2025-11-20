@@ -162,19 +162,6 @@ If new data becomes available (e.g., from AHN logs), adjust these values to bett
 
 ---
 
-## 🛠️ Extending the Model
-You can add:
-- New controls (e.g., segmentation, training effectiveness)
-- New threat scenarios
-- New visualization panels
-
-Steps:
-1. Add logic inside `ransom_model.py`
-2. Add UI controls in `main_dashboard.py`
-3. Update simulation input files
-
----
-
 ## ⚠️ Limitations
 - Model does not capture correlated multi-site outages
 - Real-world effectiveness of controls varies by threat actor
@@ -189,14 +176,4 @@ Steps:
 - Evan Crooks
 - Mohini Madhur
 
-Carnegie Mellon University — Heinz College
-
----
-
-If you'd like:
-- A bilingual (EN/中文) README
-- Version with diagrams
-- A more executive-friendly version
-
-Just tell me and I’ll generate it!
-
+Carnegie Mellon University
