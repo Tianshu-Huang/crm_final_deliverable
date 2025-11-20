@@ -1,16 +1,18 @@
-# ===========================
-# AHN Ransomware Risk Dashboard
-# Requirements File
-# ===========================
+# ---------------------------------------------
+# AHN Ransomware Simulation Tool - Requirements
+# ---------------------------------------------
+# Only core libraries used across the dashboards.
+# Versions are pinned for reproducibility and
+# compatibility with Streamlit + Plotly visualizations.
 
-# Core libraries
-pandas==2.2.3
-numpy==1.26.4
+# Data handling & computation
+pandas==2.2.2          # dataframes, CSV ingestion, transformation
+numpy==1.26.4          # numerical operations & simulations
 
-# Visualization and Dashboard
-plotly==5.24.0
-streamlit==1.39.0
+# Visualization libraries
+plotly==5.22.0         # interactive graphs & heatmaps (px & go)
+matplotlib==3.9.0      # fallback visualizations / static figures
+altair==5.3.0          # lightweight declarative charts if needed
 
-# Optional utilities (safe to keep)
-matplotlib==3.9.2     # for quick testing or fallback plots
-altair==5.4.1         # optional alternative charting
+# Web application framework
+streamlit==1.37.0      # interactive UI for the simulation tool
