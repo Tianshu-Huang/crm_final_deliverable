@@ -55,28 +55,43 @@ CSV Input:
 The main point of this model is not to be precise, but to compare shapes
 of the cost curves and help AHN decide when ransom payment is actually the
 cheaper option vs when backups win outright.
-
 """
 
 
-# ---------- Load Default Assumptions ----------
+# -------------------------------------------------------------------
+# Load default assumptions
+# -------------------------------------------------------------------
 def load_assumptions(path="data/assumptions.csv"):
+    """
+    Load baseline assumptions for MTTD, MTTR, and downtime cost.
+    Returns values found in the CSV, if present; otherwise returns empty dict.
+    """
     p = Path(path)
     if not p.exists():
         return {}
+
     try:
         df = pd.read_csv(p)
         vals = {}
+
+        # Only store known keys
         for col in ["MTTD_hours", "MTTR_hours", "downtime_cost_per_hour"]:
             if col in df.columns:
                 vals[col] = float(df[col].dropna().iloc[0])
+
         return vals
+
     except Exception:
         return {}
 
+
+# Global defaults loaded once
 ASSUME = load_assumptions()
 
-# ---------- Cost Model Functions ----------
+
+# -------------------------------------------------------------------
+# Cost Model Functions (No Logic Changed)
+# -------------------------------------------------------------------
 def expected_cost_pay_ransom(
     ransom_amount: float,
     negotiation_hours: float,
@@ -87,11 +102,20 @@ def expected_cost_pay_ransom(
     mttd_hours: float,
     mttr_hours: float,
 ) -> float:
+    """
+    Expected total cost if the organization chooses to pay the ransom.
+    Includes ransom amount, downtime during negotiation/decryption, and
+    contingency cost for failed decryption.
+    """
+    # Total downtime if ransom succeeds
     downtime_if_pay = mttd_hours + negotiation_hours + decrypt_hours
     downtime_cost_pay = downtime_if_pay * downtime_cost_per_hour
+
+    # Expected contingency cost if decryption fails
     contingency_cost = (1 - success_prob) * (
         (mttd_hours + mttr_hours) * downtime_cost_per_hour + recovery_fixed_cost
     )
+
     return ransom_amount + downtime_cost_pay + contingency_cost
 
 
@@ -102,166 +126,257 @@ def expected_cost_recover(
     recovery_fixed_cost: float,
     data_loss_cost: float = 0.0,
 ) -> float:
+    """
+    Expected cost if AHN recovers systems via backup restoration.
+    Includes downtime cost, fixed IR cost, and optional data-reentry cost.
+    """
     downtime_total = mttd_hours + mttr_hours
     return downtime_total * downtime_cost_per_hour + recovery_fixed_cost + data_loss_cost
 
 
-# ---------- Main Interactive Dashboard ----------
+# -------------------------------------------------------------------
+# Main Interactive Dashboard
+# -------------------------------------------------------------------
 def render_decision_model_tab():
+    """Render the 'Ransom vs. Recovery' decision model dashboard."""
     st.title("Ransom Payment vs System Recovery — Decision Model")
 
     st.write(
-        "This interactive dashboard compares the **expected total cost** of two strategies during a ransomware incident: "
-        "**Pay Ransom** vs **Recover via Backups**. Adjust detection/recovery times, "
-        "ransom amount, and success probability to visualize cost trade-offs and recommendations."
+        "This interactive dashboard compares the **expected total cost** of two strategies "
+        "during a ransomware incident: **Pay Ransom** vs **Recover via Backups**. Modify "
+        "MTTD, MTTR, ransom amount, and decryption probability to visualize trade-offs."
     )
 
-    # Defaults (from assumptions file)
+    # Load defaults from assumptions CSV
     default_mttd = float(ASSUME.get("MTTD_hours", 6.0))
     default_mttr = float(ASSUME.get("MTTR_hours", 18.0))
     default_downtime_cost = float(ASSUME.get("downtime_cost_per_hour", 75_000.0))
 
-    # ---------- Sidebar Controls ----------
+    # -------------------------------------------------------------
+    # Sidebar Controls
+    # -------------------------------------------------------------
     st.sidebar.header("⚙️ Control Settings")
 
+    # Scenario presets
     scenario = st.sidebar.radio(
         "Scenario:",
         ["Baseline", "Optimistic", "Pessimistic"],
         key="sidebar_scenario"
     )
+
+    # MTTD / MTTR
     mttd = st.number_input(
-    "MTTD — Mean Time to Detect (hours)",
-    min_value=0.0, max_value=1000.0,
-    value=float(default_mttd), 
-    step=1.0, 
-    key="sidebar_mttd"
+        "MTTD — Mean Time to Detect (hours)",
+        min_value=0.0,
+        max_value=1000.0,
+        value=float(default_mttd),
+        step=1.0,
+        key="sidebar_mttd",
     )
 
     mttr = st.number_input(
         "MTTR — Mean Time to Recover (hours)",
-        min_value=0.0, max_value=1000.0,
+        min_value=0.0,
+        max_value=1000.0,
         value=float(default_mttr),
-        step=1.0, 
-        key="sidebar_mttr"
+        step=1.0,
+        key="sidebar_mttr",
     )
 
-
+    # Ransom and decryption settings
     ransom_amount = st.sidebar.number_input(
-    "💰 Ransom Amount (USD)", 0.0, 100_000_000.0, 1_200_000.0, step=50_000.0, key="sidebar_ransom"
+        "Ransom Amount (USD)",
+        0.0, 100_000_000.0,
+        1_200_000.0,
+        step=50_000.0,
+        key="sidebar_ransom"
     )
 
     success_prob = st.sidebar.slider(
-        "🔐 Decryption Success Probability", 0.0, 1.0, 0.72, 0.01,
+        "Decryption Success Probability",
+        0.0, 1.0,
+        0.72,
+        0.01,
         key="sidebar_success_prob",
-        help="Likelihood ransom payment successfully decrypts systems"
+        help="Likelihood ransom payment successfully decrypts systems",
     )
 
     negotiation_hours = st.sidebar.number_input(
-        "🤝 Negotiation Delay (hours)", 0.0, 168.0, 24.0, step=1.0, key="sidebar_negotiation"
+        "Negotiation Delay (hours)",
+        0.0, 168.0,
+        24.0,
+        step=1.0,
+        key="sidebar_negotiation"
     )
 
     decrypt_hours = st.sidebar.number_input(
-        "🔓 Decryption Time (hours)", 0.0, 168.0, 12.0, step=1.0, key="sidebar_decrypt"
+        "Decryption Time (hours)",
+        0.0, 168.0,
+        12.0,
+        step=1.0,
+        key="sidebar_decrypt"
     )
 
     downtime_cost_per_hour = st.sidebar.number_input(
-        "⏱️ Downtime Cost per Hour (USD)", 0.0, 5_000_000.0, default_downtime_cost, step=5_000.0, key="sidebar_downtime"
+        "Downtime Cost per Hour (USD)",
+        0.0, 5_000_000.0,
+        default_downtime_cost,
+        step=5_000.0,
+        key="sidebar_downtime"
     )
 
+    # IR and data-loss cost
     recovery_fixed_cost = st.sidebar.number_input(
-        "🧰 Fixed Recovery Cost (USD)", 0.0, 50_000_000.0, 1_000_000.0, step=25_000.0, key="sidebar_fixed"
+        "Fixed Recovery Cost (USD)",
+        0.0, 50_000_000.0,
+        1_000_000.0,
+        step=25_000.0,
+        key="sidebar_fixed"
     )
 
     data_loss_cost = st.sidebar.number_input(
-        "🗃️ Data Loss / Re-entry Cost (USD)", 0.0, 50_000_000.0, 5_000_000.0, step=25_000.0, key="sidebar_data_loss"
+        "Data Loss / Re-entry Cost (USD)",
+        0.0, 50_000_000.0,
+        5_000_000.0,
+        step=25_000.0,
+        key="sidebar_data_loss"
     )
 
-
-
-    # Apply scenario presets
+    # -------------------------------------------------------------
+    # Apply Scenario Presets (Logic unchanged)
+    # -------------------------------------------------------------
     if scenario == "Optimistic":
         success_prob = 0.95
         downtime_cost_per_hour *= 0.7
+
     elif scenario == "Pessimistic":
         success_prob = 0.6
         downtime_cost_per_hour *= 1.5
 
-    # ---------- Compute Results ----------
+    # -------------------------------------------------------------
+    # Compute Cost for Both Strategies
+    # -------------------------------------------------------------
     cost_pay = expected_cost_pay_ransom(
         ransom_amount, negotiation_hours, decrypt_hours, success_prob,
         downtime_cost_per_hour, recovery_fixed_cost, mttd, mttr
     )
+
     cost_recover = expected_cost_recover(
         mttd, mttr, downtime_cost_per_hour, recovery_fixed_cost, data_loss_cost
     )
 
-    # ---------- Display Results ----------
-    st.subheader("📊 Results & Recommendation")
+    # -------------------------------------------------------------
+    # Display Primary Results
+    # -------------------------------------------------------------
+    st.subheader("Results & Recommendation")
+
     c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Cost — Pay Ransom", f"${cost_pay:,.0f}")
-    with c2:
-        st.metric("Cost — Recover via Backups", f"${cost_recover:,.0f}")
+    c1.metric("Cost — Pay Ransom", f"${cost_pay:,.0f}")
+    c2.metric("Cost — Recover via Backups", f"${cost_recover:,.0f}")
+
+    strategy = "✅ Pay Ransom" if cost_pay < cost_recover else "✅ Recover via Backups"
     with c3:
-        strategy = "✅ Pay Ransom" if cost_pay < cost_recover else "✅ Recover via Backups"
         st.success(strategy)
 
+    # Comparison message
     if cost_pay < cost_recover:
-        st.info(f"💰 Paying ransom is cheaper by **${cost_recover - cost_pay:,.0f}**.")
+        st.info(f"Paying ransom is cheaper by **${cost_recover - cost_pay:,.0f}**.")
     else:
-        st.info(f"🛠️ Recovering via backups is cheaper by **${cost_pay - cost_recover:,.0f}**.")
+        st.info(f"Recovering via backups is cheaper by **${cost_pay - cost_recover:,.0f}**.")
 
-    # ---------- Tabs: Sensitivity and Heatmap----------
+    # -------------------------------------------------------------
+    # Tabs: Sensitivity Analysis + Heatmap
+    # -------------------------------------------------------------
     tab1, tab2 = st.tabs(["📈 Sensitivity Curves", "🌡️ 2D Heatmap"])
 
-    # --- Sensitivity: Cost vs Downtime/Hour ---
+    # ---------------- Sensitivity Curves ----------------
     with tab1:
         st.markdown("### Sensitivity: Cost vs. Downtime Cost per Hour")
-        dc_grid = np.linspace(max(1_000.0, downtime_cost_per_hour * 0.25), downtime_cost_per_hour * 2.0, 50)
+
+        # Generate sensitivity grid
+        dc_grid = np.linspace(
+            max(1_000.0, downtime_cost_per_hour * 0.25),
+            downtime_cost_per_hour * 2.0,
+            50
+        )
+
+        # Compute curves
         pay_curve = [
-            expected_cost_pay_ransom(ransom_amount, negotiation_hours, decrypt_hours, success_prob, dc, recovery_fixed_cost, mttd, mttr)
+            expected_cost_pay_ransom(
+                ransom_amount, negotiation_hours, decrypt_hours, success_prob,
+                dc, recovery_fixed_cost, mttd, mttr
+            )
             for dc in dc_grid
         ]
+
         recover_curve = [
-            expected_cost_recover(mttd, mttr, dc, recovery_fixed_cost, data_loss_cost)
+            expected_cost_recover(
+                mttd, mttr, dc, recovery_fixed_cost, data_loss_cost
+            )
             for dc in dc_grid
         ]
+
+        # Prepare dataframe for Plotly
         df_dc = pd.DataFrame({
             "Downtime Cost / Hour (USD)": dc_grid,
             "Pay Ransom": pay_curve,
             "Recover via Backups": recover_curve
         })
+
         fig_dc = px.line(
-            df_dc.melt(id_vars=["Downtime Cost / Hour (USD)"], var_name="Strategy", value_name="Expected Cost (USD)"),
-            x="Downtime Cost / Hour (USD)", y="Expected Cost (USD)", color="Strategy"
+            df_dc.melt(
+                id_vars=["Downtime Cost / Hour (USD)"],
+                var_name="Strategy",
+                value_name="Expected Cost (USD)"
+            ),
+            x="Downtime Cost / Hour (USD)",
+            y="Expected Cost (USD)",
+            color="Strategy"
         )
+
+        # Identify break-even point
         cross_idx = np.argmin(np.abs(np.array(pay_curve) - np.array(recover_curve)))
         decision_point = dc_grid[cross_idx]
+
         fig_dc.add_vline(
-            x=decision_point, line_dash="dash", line_color="gray",
+            x=decision_point,
+            line_dash="dash",
+            line_color="gray",
             annotation_text=f"Break-even ≈ ${decision_point:,.0f}/hr"
         )
+
         st.plotly_chart(fig_dc, use_container_width=True)
 
-    # --- 2D Sensitivity Heatmap ---
+    # ---------------- 2D Heatmap ----------------
     with tab2:
         st.markdown("### Sensitivity Heatmap: MTTR vs. Success Probability")
+
         mttr_vals = np.arange(4, 36, 4)
         success_vals = np.arange(0.5, 1.0, 0.05)
+
+        # Z[i, j] = cost of paying ransom at MTTR=mttr_vals[i], SP=success_vals[j]
         Z = np.zeros((len(mttr_vals), len(success_vals)))
+
         for i, mttr_ in enumerate(mttr_vals):
             for j, sp in enumerate(success_vals):
                 Z[i, j] = expected_cost_pay_ransom(
                     ransom_amount, negotiation_hours, decrypt_hours, sp,
                     downtime_cost_per_hour, recovery_fixed_cost, mttd, mttr_
                 )
-        fig = go.Figure(data=go.Heatmap(
-            z=Z, x=success_vals, y=mttr_vals, colorscale="YlOrRd", colorbar_title="Cost (USD)"
-        ))
+
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=Z, x=success_vals, y=mttr_vals,
+                colorscale="YlOrRd",
+                colorbar_title="Cost (USD)"
+            )
+        )
+
         fig.update_layout(
             xaxis_title="Decryption Success Probability",
             yaxis_title="MTTR (hours)"
         )
+
         st.plotly_chart(fig, use_container_width=True)
-    
+
     st.caption("All values are simulated for academic analysis and do not represent real AHN data.")

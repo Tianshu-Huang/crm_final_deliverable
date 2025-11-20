@@ -57,11 +57,18 @@ Data sources behind the scenes:
 """
 
 
-# ------------------ Load Phishing Parameters from CSV -----------------------------
+# -------------------------------------------------------------------
+# Load CSV Parameters
+# -------------------------------------------------------------------
 def load_phishing_inputs(path="data/phishing_scenario_inputs.csv"):
+    """
+    Load phishing scenario baseline parameters from CSV.
+
+    Returns fallback defaults if the file is missing.
+    """
     p = Path(path)
     if not p.exists():
-        st.warning(f"⚠️ {path} not found. Using fallback defaults.")
+        st.warning(f"{path} not found. Using fallback defaults.")
         return {
             "Phishing_Rate": 0.35,
             "Training_Effectiveness": 0.40,
@@ -77,7 +84,9 @@ def load_phishing_inputs(path="data/phishing_scenario_inputs.csv"):
     return {row["Parameter"]: row["Value"] for _, row in df.iterrows()}
 
 
-# ----------------------------- Scenario Calculation ----------------------------
+# -------------------------------------------------------------------
+# Scenario Probability / Loss Calculation
+# -------------------------------------------------------------------
 def compute_phishing_scenario(
     phishing_rate,
     training_effectiveness,
@@ -88,14 +97,26 @@ def compute_phishing_scenario(
     avg_cost_per_hour,
     downtime_hours,
 ):
+    """
+    Execute the phishing → credential theft → lateral movement → encryption
+    probability chain and compute expected financial loss.
+    """
+
+    # Probability that a phishing attempt results in a user click
     click_probability = phishing_rate * (1 - training_effectiveness)
 
-    credential_compromise = click_probability * credential_dumping_prob * (1 - mfa_strength)
+    # Probability an account is compromised after a click
+    credential_compromise = (
+        click_probability * credential_dumping_prob * (1 - mfa_strength)
+    )
 
+    # Probability attacker moves laterally from that account
     lateral_success = credential_compromise * lateral_movement_prob
 
+    # Probability EHR encryption occurs after lateral movement
     final_ehr_attack_prob = lateral_success * ehr_encryption_prob
 
+    # Expected financial loss = attack probability × downtime × cost/hr
     expected_loss = final_ehr_attack_prob * downtime_hours * avg_cost_per_hour
 
     return {
@@ -107,8 +128,11 @@ def compute_phishing_scenario(
     }
 
 
-# ----------------------------- MAIN DASHBOARD TAB -----------------------------
+# -------------------------------------------------------------------
+# Main Phishing Scenario Dashboard Tab
+# -------------------------------------------------------------------
 def render_phishing_scenario_tab():
+    """Render the phishing → credential compromise → encryption scenario dashboard."""
     st.title("🎣 Phishing -> Credential Compromise -> EHR Encryption Scenario")
 
     st.write("""
@@ -124,15 +148,15 @@ def render_phishing_scenario_tab():
     - T1486 Data Encrypted for Impact  
     """)
 
-    # ------------------- Load Default Inputs from CSV -------------------
+    # ------------------- Load CSV defaults -------------------
     inputs = load_phishing_inputs()
 
-    # ------------------- Sidebar Inputs (CSV-driven) -------------------
+    # ------------------- Sidebar Inputs -------------------
     st.sidebar.header("⚙️ Scenario Inputs (CSV-Driven Defaults)")
 
     phishing_rate = st.sidebar.slider(
         "Phishing Email Hit Rate",
-        float(0.0), float(1.0),
+        0.0, 1.0,
         float(inputs["Phishing_Rate"]),
         step=0.01,
         key="phish_rate"
@@ -140,7 +164,7 @@ def render_phishing_scenario_tab():
 
     training_effectiveness = st.sidebar.slider(
         "Training Effectiveness",
-        float(0.0), float(1.0),
+        0.0, 1.0,
         float(inputs["Training_Effectiveness"]),
         step=0.05,
         key="phish_training"
@@ -148,7 +172,7 @@ def render_phishing_scenario_tab():
 
     mfa_strength = st.sidebar.slider(
         "MFA Coverage Effectiveness",
-        float(0.0), float(1.0),
+        0.0, 1.0,
         float(inputs["MFA_Strength"]),
         step=0.05,
         key="phish_mfa"
@@ -156,7 +180,7 @@ def render_phishing_scenario_tab():
 
     credential_dumping_prob = st.sidebar.slider(
         "Credential Dumping Success Probability",
-        float(0.0), float(1.0),
+        0.0, 1.0,
         float(inputs["Credential_Dumping_Prob"]),
         step=0.05,
         key="phish_creddump"
@@ -164,7 +188,7 @@ def render_phishing_scenario_tab():
 
     lateral_movement_prob = st.sidebar.slider(
         "Lateral Movement Success Probability",
-        float(0.0), float(1.0),
+        0.0, 1.0,
         float(inputs["Lateral_Movement_Prob"]),
         step=0.05,
         key="phish_lateral"
@@ -172,7 +196,7 @@ def render_phishing_scenario_tab():
 
     ehr_encryption_prob = st.sidebar.slider(
         "EHR Encryption Probability",
-        float(0.0), float(1.0),
+        0.0, 1.0,
         float(inputs["EHR_Encryption_Prob"]),
         step=0.05,
         key="phish_encrypt"
@@ -180,21 +204,21 @@ def render_phishing_scenario_tab():
 
     avg_cost_per_hour = st.sidebar.number_input(
         "Downtime Cost per Hour (USD)",
-        float(0.0), float(5_000_000.0),
+        0.0, 5_000_000.0,
         float(inputs["Avg_Cost_Per_Hour"]),
-        step=float(5000.0),
+        step=5000.0,
         key="phish_cost_hour"
     )
 
     downtime_hours = st.sidebar.number_input(
         "Estimated EHR Downtime (Hours)",
-        float(0.0), float(240.0),
+        0.0, 240.0,
         float(inputs["Downtime_Hours"]),
-        step=float(1.0),
+        step=1.0,
         key="phish_downtime"
     )
 
-    # ------------------- Run Scenario Model -------------------
+    # ------------------- Run Scenario -------------------
     results = compute_phishing_scenario(
         phishing_rate,
         training_effectiveness,
@@ -206,8 +230,8 @@ def render_phishing_scenario_tab():
         downtime_hours,
     )
 
-    # ------------------- Display Results -------------------
-    st.subheader("📊 Scenario Risk Metrics")
+    # ------------------- Display Metrics -------------------
+    st.subheader("Scenario Risk Metrics")
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Credential Compromise", f"{results['Credential Compromise Probability']*100:.2f}%")
@@ -216,16 +240,17 @@ def render_phishing_scenario_tab():
 
     st.metric("Expected Financial Loss", f"${results['Expected Loss (USD)']:,.0f}")
 
-    # ------------------- Table Output -------------------
-    st.markdown("### 📋 Detailed Scenario Table")
+    # ------------------- Detailed Results Table -------------------
+    st.markdown("### Detailed Scenario Table")
+
     df = pd.DataFrame({
         "Metric": list(results.keys()),
         "Value": list(results.values())
     })
     st.dataframe(df, use_container_width=True)
 
-    # ------------------- Visualization: Attack Funnel -------------------
-    st.markdown("### 📈 Attack Chain Probability Funnel")
+    # ------------------- Funnel Visualization -------------------
+    st.markdown("### Attack Chain Probability Funnel")
 
     funnel_df = pd.DataFrame({
         "Stage": [
@@ -240,7 +265,7 @@ def render_phishing_scenario_tab():
             results["Click Probability"],
             results["Credential Compromise Probability"],
             results["Lateral Movement Probability"],
-            results["EHR Encryption Probability"],
+            results["EHR Encryption Probability"]
         ]
     })
 
@@ -250,6 +275,7 @@ def render_phishing_scenario_tab():
         y="Stage",
         title="MITRE ATT&CK Chain: Probability of Success",
     )
+
     st.plotly_chart(fig, use_container_width=True)
 
     st.caption("All scenario inputs are loaded from data/phishing_scenario_inputs.csv and can be tuned without any code changes.")

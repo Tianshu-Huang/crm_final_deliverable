@@ -47,11 +47,22 @@ Data sources behind the scenes:
 
 """
 
-
-# ---------- Load CSV-driven simulation parameters ----------
+# -------------------------------------------------------------------
+# Load simulation inputs from CSV
+# -------------------------------------------------------------------
 def load_simulation_inputs(path="data/simulation_inputs.csv"):
+    """
+    Load baseline ransomware parameters and default control values from CSV.
+
+    Parameters:
+        path (str): Path to simulation_inputs.csv
+
+    Returns:
+        dict: {Parameter: Value} mapping
+    """
     p = Path(path)
     if not p.exists():
+        # If CSV missing, fall back to compiled defaults
         st.warning(f"⚠️ Could not find {path}. Using fallback defaults.")
         return {
             "Base_Frequency": 1.0,
@@ -69,25 +80,47 @@ def load_simulation_inputs(path="data/simulation_inputs.csv"):
     return {row["Parameter"]: row["Value"] for _, row in df.iterrows()}
 
 
-
-# ---------- MAIN DASHBOARD ----------
+# -------------------------------------------------------------------
+# Main Dashboard Renderer
+# -------------------------------------------------------------------
 def render_main_dashboard():
+    """
+    Render the primary ransomware Monte Carlo simulation dashboard.
+    This provides baseline EAL, EAL with controls, loss distribution,
+    modifiers table, and ROI calculations.
+    """
+
     st.title("AHN Ransomware Risk Dashboard")
 
-    # ---- Load CSV parameters ----
+    # -----------------------------------------
+    # Load model parameters from CSV
+    # -----------------------------------------
     params = load_simulation_inputs()
 
-    # ---- SIDEBAR CONTROLS ----
-    st.sidebar.header("Control Settings")
-    mfa = st.sidebar.slider("MFA Coverage (%)", 0, 100, int(params["Default_MFA"]))
-    edr = st.sidebar.slider("EDR Deployment (%)", 0, 100, int(params["Default_EDR"]))
-    soc = st.sidebar.slider("SOC Coverage (hours/day)", 8, 24, int(params["Default_SOC"]))
-    backup = st.sidebar.slider("Backup Strength (RTO hours)", 1, 48, int(params["Default_Backup"]))
+    # -----------------------------------------
+    # Sidebar: User-adjustable controls
+    # -----------------------------------------
+    st.sidebar.header("⚙️ Control Settings")
+
+    mfa = st.sidebar.slider(
+        "MFA Coverage (%)", 0, 100, int(params["Default_MFA"])
+    )
+    edr = st.sidebar.slider(
+        "EDR Deployment (%)", 0, 100, int(params["Default_EDR"])
+    )
+    soc = st.sidebar.slider(
+        "SOC Coverage (hours/day)", 8, 24, int(params["Default_SOC"])
+    )
+    backup = st.sidebar.slider(
+        "Backup Strength (RTO hours)", 1, 48, int(params["Default_Backup"])
+    )
     budget = st.sidebar.number_input(
         "Security Investment ($M)", 0.0, 100.0, float(params["Default_Budget"])
     )
 
-    # ---- Base Monte Carlo Parameters ----
+    # -----------------------------------------
+    # Extract Monte Carlo parameters
+    # -----------------------------------------
     base_freq = float(params["Base_Frequency"])
     base_loss_mu = float(params["Base_Loss_Mu"])
     base_loss_sigma = float(params["Base_Loss_Sigma"])
@@ -95,51 +128,62 @@ def render_main_dashboard():
 
     N = 10000  # Monte Carlo iterations
 
-    # BASELINE CASE - No Control Applied
-    # Baseline = zero security posture
-    freq_modifier_base = (1 - (0 / 100) * 0.45) * (1 - ((8 - 8) / 16) * 0.25)
-    severity_multiplier_base = 1.0  
+    # -------------------------------------------------------------------
+    # BASELINE CASE (Zero Control Posture)
+    # -------------------------------------------------------------------
 
+    # Frequency adjustment for "no controls" scenario
+    freq_modifier_base = (
+        (1 - (0 / 100) * 0.45) *          # MFA = 0%
+        (1 - (0 / 100) * 0.15) *          # EDR = 0%
+        (1 - ((8 - 8) / 16) * 0.25)       # SOC = 8 hours baseline
+    )
+
+    severity_multiplier_base = 1.0  # No severity reduction
     adjusted_freq_base = base_freq * freq_modifier_base
 
-    # Monte Carlo baseline
+    # Baseline Monte Carlo simulation
     raw_losses_base = np.random.lognormal(base_loss_mu, base_loss_sigma, N)
     annual_losses_base = raw_losses_base * severity_multiplier_base * adjusted_freq_base
     EAL_baseline = np.mean(annual_losses_base)
 
-    # CONTROL MODIFIERS
-    # ---------- Frequency modifiers ----------
+    # -------------------------------------------------------------------
+    # CONTROL MODIFIERS (User-selected)
+    # -------------------------------------------------------------------
+
+    # --- Frequency modifiers ---
     freq_modifier = (
-        (1 - (mfa / 100) * 0.45) *
-        (1 - (edr / 100) * 0.15) *
-        (1 - ((soc - 8) / 16) * 0.25)
+        (1 - (mfa / 100) * 0.45) *                # MFA reduces frequency
+        (1 - (edr / 100) * 0.15) *                # EDR reduces frequency (not severity)
+        (1 - ((soc - 8) / 16) * 0.25)             # SOC reduces frequency via dwell time
     )
-    freq_modifier = max(0.05, freq_modifier)
+    freq_modifier = max(0.05, freq_modifier)      # Prevent unrealistic low frequency
     adjusted_freq = base_freq * freq_modifier
 
-    # ---------- Severity modifiers ----------
-    # EDR reduces severity
-    sev_edr = 1 - (edr / 100) * 0.35
-    sev_backup = 1 + (backup / 48) * 0.50
+    # --- Severity modifiers ---
+    sev_edr = 1 - (edr / 100) * 0.35              # EDR reduces severity
+    sev_backup = 1 + (backup / 48) * 0.50         # Longer restores → higher impact
 
-    # Final severity multiplier
+    # Final loss severity multiplier
     loss_modifier = max(0.05, sev_edr * sev_backup)
 
-    # ---------- Monte Carlo severity ----------
+    # -------------------------------------------------------------------
+    # MONTE CARLO SIMULATION WITH CONTROLS
+    # -------------------------------------------------------------------
     raw_losses = np.random.lognormal(base_loss_mu, base_loss_sigma, N)
-
-    # final loss distribution
     annual_losses = raw_losses * loss_modifier * adjusted_freq
 
-    # ---------- Metrics ----------
+    # Metrics
     EAL = np.mean(annual_losses)
     P95 = np.percentile(annual_losses, 95)
     std_dev = np.std(annual_losses)
 
-    # ROI
+    # ROI metric
     roi_val = (EAL_baseline - EAL) / (budget * 1_000_000)
 
-    # HEADER LAYOUT
+    # -------------------------------------------------------------------
+    # OUTPUT: Summary Metrics
+    # -------------------------------------------------------------------
     st.subheader("Simulation Results")
 
     c1, c2, c3, c4 = st.columns(4)
@@ -148,7 +192,9 @@ def render_main_dashboard():
     c3.metric("95th Percentile Loss", f"${P95/1e6:.2f}M")
     c4.metric("ROI (Risk Reduction)", f"{roi_val:.2f}x")
 
-    # HISTOGRAM
+    # -------------------------------------------------------------------
+    # Loss distribution histogram
+    # -------------------------------------------------------------------
     fig = px.histogram(
         annual_losses / 1e6,
         nbins=40,
@@ -157,31 +203,56 @@ def render_main_dashboard():
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # CONTROL MODIFIERS
+    # -------------------------------------------------------------------
+    # Control modifiers table
+    # -------------------------------------------------------------------
     st.markdown("### Control-Based Modifiers")
     modifier_df = pd.DataFrame({
-        "Modifier": ["Frequency Modifier", "Severity Multiplier", "Adjusted Frequency (events/yr)"],
-        "Value": [freq_modifier, loss_modifier, adjusted_freq],
+        "Modifier": [
+            "Frequency Modifier",
+            "Severity Multiplier",
+            "Adjusted Frequency (events/yr)"
+        ],
+        "Value": [
+            freq_modifier,
+            loss_modifier,
+            adjusted_freq
+        ],
     })
     st.table(modifier_df)
 
-    # ADVANCED PARAMETERS
+    # -------------------------------------------------------------------
+    # Advanced parameter editor (from CSV)
+    # -------------------------------------------------------------------
     with st.expander("⚙️ Advanced Monte Carlo Parameters (Editable)"):
         st.markdown("These base parameters come from simulation_inputs.csv.")
 
         base_df = pd.DataFrame({
-            "Parameter": ["Base Frequency", "Base Loss Mu", "Base Loss Sigma", "Baseline Cost"],
-            "Value": [base_freq, base_loss_mu, base_loss_sigma, baseline_cost],
+            "Parameter": [
+                "Base Frequency",
+                "Base Loss Mu",
+                "Base Loss Sigma",
+                "Baseline Cost"
+            ],
+            "Value": [
+                base_freq,
+                base_loss_mu,
+                base_loss_sigma,
+                baseline_cost
+            ],
         })
 
         edited_df = st.data_editor(base_df, use_container_width=True)
 
+        # Update variables with edited values (logic unchanged)
         base_freq = float(edited_df.loc[0, "Value"])
         base_loss_mu = float(edited_df.loc[1, "Value"])
         base_loss_sigma = float(edited_df.loc[2, "Value"])
         baseline_cost = float(edited_df.loc[3, "Value"])
 
-    # SUMMARY TABLE
+    # -------------------------------------------------------------------
+    # Summary table
+    # -------------------------------------------------------------------
     st.markdown("### Monte Carlo Summary Table")
     summary_df = pd.DataFrame({
         "Metric": [
@@ -203,6 +274,9 @@ def render_main_dashboard():
             f"{roi_val:.2f}x",
         ]
     })
+
     st.dataframe(summary_df, use_container_width=True)
 
-    st.caption("Monte Carlo model compares baseline EAL (no controls) vs. current control posture to compute ROI.")
+    st.caption(
+        "Monte Carlo model compares baseline EAL (no controls) vs. current control posture to compute ROI."
+    )
