@@ -108,13 +108,16 @@ def expected_cost_pay_ransom(
     contingency cost for failed decryption.
     """
     # Total downtime if ransom succeeds
-    downtime_if_pay = mttd_hours + negotiation_hours + decrypt_hours
+    # CORRECT: only negotiation + decryption create downtime
+    downtime_if_pay = negotiation_hours + decrypt_hours
     downtime_cost_pay = downtime_if_pay * downtime_cost_per_hour
+
 
     # Expected contingency cost if decryption fails
     contingency_cost = (1 - success_prob) * (
-        (mttd_hours + mttr_hours) * downtime_cost_per_hour + recovery_fixed_cost
+        (mttr_hours * downtime_cost_per_hour) + recovery_fixed_cost
     )
+
 
     return ransom_amount + downtime_cost_pay + contingency_cost
 
@@ -130,8 +133,9 @@ def expected_cost_recover(
     Expected cost if AHN recovers systems via backup restoration.
     Includes downtime cost, fixed IR cost, and optional data-reentry cost.
     """
-    downtime_total = mttd_hours + mttr_hours
+    downtime_total = mttr_hours
     return downtime_total * downtime_cost_per_hour + recovery_fixed_cost + data_loss_cost
+
 
 
 # -------------------------------------------------------------------
